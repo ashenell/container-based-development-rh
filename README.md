@@ -129,3 +129,28 @@ Github will make a ping request and it should say successful attempt.
 Now if you will push changes it should trigger automatic build process.
 
 ### Configure application secrets
+
+In this chapter we are speaking about config maps and secrets. How those things ise used etc.
+
+In here we use base64, but be careful and in real scenario use something stronger for example rsa254. Not sure why be use base64 in this example. But so be it.
+
+Basic flow is
+
+1. Create your YAML config file
+2. Add values
+```yml
+kind: ConfigMap 1
+apiVersion: v1
+data: 2
+    username: myuser
+    password: mypass
+metadata:
+    name: myconf 3
+```
+3. Create ConfigMaps and secrets in OpenShift
+4. Inject ConfigMaps and screts as env variables
+5. Push application Pod
+6. Your application now will have access to your variables
+
+
+
