@@ -152,5 +152,6 @@ metadata:
 5. Push application Pod
 6. Your application now will have access to your variables
 
+In this lesson we will add some secrets and yaml files to get API key and also we are interested to setup config maps.
 
-
+There are some sort of error just giving an logical url path to repo to monitor. Som reason it wont give access idk. 
