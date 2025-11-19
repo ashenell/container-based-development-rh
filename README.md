@@ -154,4 +154,47 @@ metadata:
 
 In this lesson we will add some secrets and yaml files to get API key and also we are interested to setup config maps.
 
-There are some sort of error just giving an logical url path to repo to monitor. Som reason it wont give access idk. 
+
+**There are some sort of error just giving an logical url path to repo to monitor. Som reason it wont give access idk.**
+
+-- Problem actually was there that i attempt to open wrong link. You must make sure to open proper rote. For doing it just open topology and open your deployed application and find route and do clean link copy.
+
+Deleting pod means that it will automatically builds the new one. Useful if you did made changes on secrets or in config maps.
+
+
+### Connecting to Database
+
+Database connection string is 
+```postgresql://username:password@dbservice:port/dbname```
+It must contain following
+
+1. ```username``` - The database user name for accessing the database
+2. ```password```- The password for accessing the database
+3. ```dbservice``` - The service name for the database deployed on OpenShift
+4. ```port```- The TCP port where the database server listens for incoming connections
+5. ```dbname``` - The database name
+
+All sensitive information must be hold in secrets. Make sure to .gitinore .env files and manually add secrets into RH.
+
+If database is not in the same cluster we must replace with server IP address.
+
+In this example we are using database templates. Similar things like perviously. Using PostgreSQL (Ephameral). Fill the fields like dbusername, password name and dbname.
+
+In secrets we create to hold database connection secrets.
+
+In example application make sure to change configuration string in ```config.js file``` replace with ```postgresql://<username>:<password>@<host>:<port>/<database>```
+
+After new node.js deployment it should work. First it should be empty. If executing seed process you should see data in it if not you did something wrong.
+
+Opening pod you can use sql queries in terminal. Similar with thing with k8s. Note that we usually don't make changes this way because it's danger. 
+
+Running simple queries in terminal we can validate that seeding process is working properly.
+
+## Chapter 4 - scaling applications
+
+Okay interesting fact. If you have your database running in pod you cannot scaling it up. For that we need operators for doing so. **PS!In k8s we can use similar thing, but today we are using basic deployment and applications are not using operators**
+
+Adn you cannot scale all pods up. Problem starts with state management. Also you can tell for single pod how much it can scale it self up min and max parameters. 
+
+I assume LB will monitor the traffic and it it will up scale the pod. I think RH call LB -> Route??
+
