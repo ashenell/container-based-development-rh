@@ -198,3 +198,113 @@ Adn you cannot scale all pods up. Problem starts with state management. Also you
 
 I assume LB will monitor the traffic and it it will up scale the pod. I think RH call LB -> Route??
 
+In this example we are creating php application to test out how scaling work.
+
+If deployment was successful you should see ```I am running on host -> scale-69f57849cc-fdjbv (10.131.0.199) ```
+
+In topology view you can scale up your app in details view. By default if we have running 2 separated pods LB still routes us to single pod. For fix that we need add extra lines of code to yamal configuration. For that we use roundrobin method and it will be added to annotations section
+```YAML
+annotations:
+  openshift.io/host.generated: 'true'
+  haproxy.router.openshift.io/balance: roundrobin
+  haproxy.router.openshift.io/disable_cookies: 'true'
+```
+
+To confirm that everything is working properly we can see application is keep switching different pods by getting new IP-s.
+
+To run OC terminal do following steps:
+1. Open terminal on MacOS ```zsh ```
+2. Go to ```cd /Users/rauno/Downloads/test_oc```
+3. Run command ```./oc``` make sure to add it this way other wise it will not work
+
+If login was successful you should get following message ```Using project "l6dev-scale".```
+
+Following command will set what is a minimum number of pods on load and maximum. We will tell to the RHOCP that when load is higher that 80% it will scale up, but not more than 3 pods.
+
+```./oc autoscale deployment/scale --min=1 --max=3 --cpu-percent=80```
+
+Response should be ```horizontalpodautoscaler.autoscaling/scale autoscaled```
+
+To stress app and test the configuration we use pre configured docker project and deploy it in to RH cluster.
+
+```ab -dSrk -c 20 -n 50000000 http://${SCALE_SERVICE_HOST}:${SCALE_SERVICE_PORT}/index.php```
+
+If deployment is done we should see on logs that application will get some load.
+
+If we now look on topology we can see that on load application indeed scaled up.
+
+Now scale down stress docker and wait couple of mins to confirm that application will auto scale down to 1 pod.
+
+## Chapter 5 - Troubleshooting
+
+Basically if something fails you can simply go through logs to validate where issue might be. 
+
+We ran in some git errors before this step so those logs helped a lot to investigate issues. 
+
+Another part is that you can debug application logs on pod. It means that if you open it you can go through logs and find errors. In my experience it's not very useful method to analyse logs. For that we use separated log management system for example ELK to index logs and tag them and use graylog to fetch and properly look through logs. 
+
+In example we are creating database with default configurations and deploy new node.js application.
+
+
+We can see that deployment was failed and we can see from following in logs
+```bash
+---> Installing all dependencies
+npm ERR! code EJSONPARSE
+npm ERR! file /opt/app-root/src/package.json
+npm ERR! JSON.parse Failed to parse json
+npm ERR! JSON.parse Unexpected token d in JSON at position 118 while parsing near '... ./bin/www.js"
+npm ERR! JSON.parse   },
+npm ERR! JSON.parse dependencies": {
+npm ERR! JSON.parse    ...'
+npm ERR! JSON.parse Failed to parse package.json data.
+npm ERR! JSON.parse package.json must be actual JSON, not just JavaScript.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2025-11-20T12_42_45_177Z-debug.log
+error: build error: error building at STEP "RUN /usr/libexec/s2i/assemble": error while running runtime: exit status 1
+```
+
+Now if we will go to repository and open package.json we can see indeed that there is a problem we have a missing quote.
+
+Now we can see that application run in to crash loop and we can see it on logs. 
+
+```bash
+internal/modules/cjs/loader.js:818
+  throw err;
+  ^
+
+Error: Cannot find module '/opt/app-root/src/bin/www.js'
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:815:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:667:27)
+    at Function.executeUserEntryPoint [as runMain] (internal/modules/run_main.js:60:12)
+    at internal/main/run_main_module.js:17:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+npm info lifecycle contacts@1.0.0~start: Failed to exec start script
+npm ERR! code ELIFECYCLE
+npm ERR! errno 1
+npm ERR! contacts@1.0.0 start: `node ./bin/www.js`
+npm ERR! Exit status 1
+npm ERR!
+npm ERR! Failed at the contacts@1.0.0 start script.
+npm ERR! This is probably not a problem with npm. There is likely additional logging output above.
+npm timing npm Completed in 161ms
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2025-11-20T12_47_55_063Z-debug.log
+```
+
+Indeed checking package.json once again we see something un usual
+```json
+  "scripts": {
+    "start": "node ./bin/www.js"
+  },
+  ```
+
+Remove unexpected .js and it should work.
+
+Now after we fixed some simple typos we will get database errors. Ofc we do get because we didn't configure it properly and application don't know where to make connections to.
+
+After adding missing secrets from environment tab application will automaticallt redeploy it self and now we can see information.
+
